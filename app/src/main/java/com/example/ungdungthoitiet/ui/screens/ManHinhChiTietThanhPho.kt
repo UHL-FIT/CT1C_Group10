@@ -32,10 +32,10 @@ fun ManHinhChiTietThanhPho(
     val thanhPho = trangThai.thanhPhoDuocChon
 
     if (thanhPho != null) {
-        val isF = trangThai.donViNhietDo == "°F"
-        fun toDisp(c: Int) = if (isF) (c * 9 / 5) + 32 else c
+        val laDoF = trangThai.donViNhietDo == "°F"
+        fun doiNhietDo(c: Int) = if (laDoF) (c * 9 / 5) + 32 else c
 
-        fun parseTemp(s: String): Int {
+        fun layNhietDo(s: String): Int {
             return try {
                 s.substringAfter("- ").substringBefore("°").trim().toInt()
             } catch (e: Exception) {
@@ -43,8 +43,8 @@ fun ManHinhChiTietThanhPho(
             }
         }
 
-        fun getIcon(desc: String): String {
-            val d = desc.lowercase()
+        fun layBieuTuong(moTa: String): String {
+            val d = moTa.lowercase()
             return when {
                 d.contains("mưa") -> "🌧️"
                 d.contains("mây") -> "☁️"
@@ -87,15 +87,15 @@ fun ManHinhChiTietThanhPho(
                 ) {
                     Text(text = "Vị trí: ${thanhPho.tenThanhPho}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        text = "${toDisp(thanhPho.nhietDo)}${trangThai.donViNhietDo}",
+                        text = "${doiNhietDo(thanhPho.nhietDo)}${trangThai.donViNhietDo}",
                         fontSize = 48.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(text = "Trạng thái: ${thanhPho.trangThai}", fontSize = 16.sp)
                     Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(text = "Thấp nhất: ${toDisp(thanhPho.nhietDoThapNhat)}°", color = Color(0xFF1976D2))
-                        Text(text = "Cao nhất: ${toDisp(thanhPho.nhietDoCaoNhat)}°", color = Color(0xFFD32F2F))
+                        Text(text = "Thấp nhất: ${doiNhietDo(thanhPho.nhietDoThapNhat)}°", color = Color(0xFF1976D2))
+                        Text(text = "Cao nhất: ${doiNhietDo(thanhPho.nhietDoCaoNhat)}°", color = Color(0xFFD32F2F))
                     }
                 }
 
@@ -106,18 +106,18 @@ fun ManHinhChiTietThanhPho(
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(thanhPho.duBaoTheoGio) { item ->
-                        val time = item.substringBefore(" -")
-                        val desc = item.substringAfter("(").substringBefore(")")
-                        val temp = toDisp(parseTemp(item))
+                        val thoiGian = item.substringBefore(" -")
+                        val moTa = item.substringAfter("(").substringBefore(")")
+                        val nhietDo = doiNhietDo(layNhietDo(item))
                         Column(
                             modifier = Modifier
                                 .background(Color(0xFFFAFAFA), shape = MaterialTheme.shapes.small)
                                 .padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(text = time, fontSize = 12.sp, color = Color.Gray)
-                            Text(text = getIcon(desc), fontSize = 24.sp)
-                            Text(text = "${temp}°", fontWeight = FontWeight.Bold)
+                            Text(text = thoiGian, fontSize = 12.sp, color = Color.Gray)
+                            Text(text = layBieuTuong(moTa), fontSize = 24.sp)
+                            Text(text = "${nhietDo}°", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -129,9 +129,9 @@ fun ManHinhChiTietThanhPho(
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     thanhPho.duBaoTheoTuan.forEach { item ->
-                        val date = item.substringBefore(" -")
-                        val desc = item.substringAfter("(").substringBefore(")")
-                        val temp = toDisp(parseTemp(item))
+                        val ngayThang = item.substringBefore(" -")
+                        val moTa = item.substringAfter("(").substringBefore(")")
+                        val nhietDo = doiNhietDo(layNhietDo(item))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -140,9 +140,9 @@ fun ManHinhChiTietThanhPho(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = date, modifier = Modifier.weight(1f))
-                            Text(text = getIcon(desc), modifier = Modifier.padding(horizontal = 12.dp))
-                            Text(text = "${temp}${trangThai.donViNhietDo}", fontWeight = FontWeight.Bold)
+                            Text(text = ngayThang, modifier = Modifier.weight(1f))
+                            Text(text = layBieuTuong(moTa), modifier = Modifier.padding(horizontal = 12.dp))
+                            Text(text = "${nhietDo}${trangThai.donViNhietDo}", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -159,15 +159,15 @@ fun ManHinhChiTietThanhPho(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ParamTile("Độ ẩm", "${thanhPho.doAm}%", Modifier.weight(1f))
-                        ParamTile("Tốc độ gió", "${String.format(java.util.Locale.US, "%.1f", tocDoGioHienThi)} ${trangThai.donViGio}", Modifier.weight(1f))
+                        OThongSo("Độ ẩm", "${thanhPho.doAm}%", Modifier.weight(1f))
+                        OThongSo("Tốc độ gió", "${String.format(java.util.Locale.US, "%.1f", tocDoGioHienThi)} ${trangThai.donViGio}", Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ParamTile("Lượng mưa", "${String.format(java.util.Locale.US, "%.2f", luongMuaHienThi)} ${trangThai.donViLuongMua}", Modifier.weight(1f))
-                        ParamTile("Áp suất", "${thanhPho.apSuat} hPa", Modifier.weight(1f))
+                        OThongSo("Lượng mưa", "${String.format(java.util.Locale.US, "%.2f", luongMuaHienThi)} ${trangThai.donViLuongMua}", Modifier.weight(1f))
+                        OThongSo("Áp suất", "${thanhPho.apSuat} hPa", Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ParamTile("Tầm nhìn xa", "${String.format(java.util.Locale.US, "%.1f", khoangCachHienThi)} ${trangThai.donViKhoangCach}", Modifier.weight(1f))
+                        OThongSo("Tầm nhìn xa", "${String.format(java.util.Locale.US, "%.1f", khoangCachHienThi)} ${trangThai.donViKhoangCach}", Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                     }
                 }
@@ -196,20 +196,20 @@ fun ManHinhChiTietThanhPho(
 }
 
 @Composable
-private fun ParamTile(label: String, value: String, modifier: Modifier = Modifier) {
+private fun OThongSo(nhan: String, giaTri: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .background(Color(0xFFF5F5F5), shape = MaterialTheme.shapes.small)
             .padding(12.dp)
     ) {
-        Text(text = label, fontSize = 11.sp, color = Color.Gray)
-        Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = nhan, fontSize = 11.sp, color = Color.Gray)
+        Text(text = giaTri, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewChiTiet() {
+fun XemTruocChiTiet() {
     val mau = DuLieuThoiTiet("Hà Nội", 34, "Mây rải rác", 58, 5.0, 1005, 35, 27, listOf("Bây giờ - 34°C (mây)"), listOf("Ngày mai - 34°C (mây)"))
     ManHinhChiTietThanhPho(TrangThaiUiThoiTiet(thanhPhoDuocChon = mau), {}, {}, {}, {}, {}, {}, {})
 }

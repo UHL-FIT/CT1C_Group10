@@ -20,7 +20,7 @@ class MoHinhXemThoiTiet : ViewModel() {
     private val _trangThaiUi = MutableStateFlow(TrangThaiUiThoiTiet())
     val uiState: StateFlow<TrangThaiUiThoiTiet> = _trangThaiUi.asStateFlow()
 
-    private var searchJob: Job? = null
+    private var congViecTimKiem: Job? = null
 
     init {
         taiDuLieuThoiTietMacDinh()
@@ -67,10 +67,10 @@ class MoHinhXemThoiTiet : ViewModel() {
      */
     fun capNhatChuoiTimKiemVaLocGoiY(chuoiNhap: String) {
         _trangThaiUi.update { it.copy(chuoiTimKiemHienTai = chuoiNhap, thanhPhoXemTruoc = null) }
-        searchJob?.cancel()
+        congViecTimKiem?.cancel()
         
         if (chuoiNhap.length >= 2) {
-            searchJob = viewModelScope.launch {
+            congViecTimKiem = viewModelScope.launch {
                 delay(500)
                 _trangThaiUi.update { it.copy(dangTaiDuLieu = true) }
                 val goiY = khoDuLieu.timKiemThanhPho(chuoiNhap)

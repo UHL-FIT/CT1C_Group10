@@ -9,147 +9,146 @@ import java.util.*
 
 class KhoDuLieuThoiTiet {
 
-    private val apiKey = "d63a62c66acd69ab3c89a169c0367cf6"
+    private val maApi = "d63a62c66acd69ab3c89a169c0367cf6"
 
+    /**
+     * Lấy dữ liệu thời tiết thực tế từ OpenWeather API.
+     */
     suspend fun layThoiTiet(tenThanhPho: String): DuLieuThoiTiet = withContext(Dispatchers.IO) {
         try {
-            val encodedCity = URLEncoder.encode(tenThanhPho, "UTF-8")
+            val tenThanhPhoMaHoa = URLEncoder.encode(tenThanhPho, "UTF-8")
 
             // 1. Lấy thời tiết hiện tại
-            val weatherUrl = "https://api.openweathermap.org/data/2.5/weather?q=$encodedCity&appid=$apiKey&units=metric&lang=vi"
-            val weatherJson = JSONObject(URL(weatherUrl).readText())
+            val duongDanThoiTiet = "https://api.openweathermap.org/data/2.5/weather?q=$tenThanhPhoMaHoa&appid=$maApi&units=metric&lang=vi"
+            val duLieuJson = JSONObject(URL(duongDanThoiTiet).readText())
             
-            val main = weatherJson.getJSONObject("main")
-            val weather = weatherJson.getJSONArray("weather").getJSONObject(0)
-            val wind = weatherJson.getJSONObject("wind")
-            val timezoneOffset = weatherJson.getLong("timezone")
+            val main = duLieuJson.getJSONObject("main")
+            val weather = duLieuJson.getJSONArray("weather").getJSONObject(0)
+            val wind = duLieuJson.getJSONObject("wind")
+            val lechMuiGio = duLieuJson.getLong("timezone")
             
-            val currentTemp = main.getDouble("temp").toInt()
-            val currentDesc = weather.getString("description")
+            val nhietDoHienTai = main.getDouble("temp").toInt()
+            val moTaHienTai = weather.getString("description")
 
             // 2. Lấy dự báo thời tiết
-            val forecastUrl = "https://api.openweathermap.org/data/2.5/forecast?q=$encodedCity&appid=$apiKey&units=metric&lang=vi"
-            val forecastResponse = URL(forecastUrl).readText()
-            val forecastJson = JSONObject(forecastResponse)
-            val forecastList = forecastJson.getJSONArray("list")
+            val duongDanDuBao = "https://api.openweathermap.org/data/2.5/forecast?q=$tenThanhPhoMaHoa&appid=$maApi&units=metric&lang=vi"
+            val duBaoJson = JSONObject(URL(duongDanDuBao).readText())
+            val danhSachDuBao = duBaoJson.getJSONArray("list")
 
             val duBaoTheoGio = mutableListOf<String>()
             val duBaoTheoTuan = mutableListOf<String>()
 
             // Thêm mốc hiện tại
-            duBaoTheoGio.add("Bây giờ - ${currentTemp}°C ($currentDesc)")
+            duBaoTheoGio.add("Bây giờ - ${nhietDoHienTai}°C ($moTaHienTai)")
 
-            val currentTime = System.currentTimeMillis() / 1000
+            val thoiGianHienTai = System.currentTimeMillis() / 1000
             
             // Xử lý dự báo 24 giờ tiếp theo
-            var countGio = 0
-            for (i in 0 until forecastList.length()) {
-                val item = forecastList.getJSONObject(i)
-                val dt = item.getLong("dt")
-                if (dt > currentTime && countGio < 4) {
-                    val localTimeMillis = (dt + timezoneOffset) * 1000
-                    val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                    calendar.timeInMillis = localTimeMillis
-                    val timeStr = String.format(Locale.US, "%02d:00", calendar.get(Calendar.HOUR_OF_DAY))
-                    val temp = item.getJSONObject("main").getDouble("temp").toInt()
-                    val desc = item.getJSONArray("weather").getJSONObject(0).getString("description")
-                    duBaoTheoGio.add("$timeStr - ${temp}°C ($desc)")
-                    countGio++
+            var soLuongGio = 0
+            for (i in 0 until danhSachDuBao.length()) {
+                val phanTu = danhSachDuBao.getJSONObject(i)
+                val thoiGian = phanTu.getLong("dt")
+                if (thoiGian > thoiGianHienTai && soLuongGio < 4) {
+                    val msDiaPhuong = (thoiGian + lechMuiGio) * 1000
+                    val lich = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                    lich.timeInMillis = msDiaPhuong
+                    val chuoiThoiGian = String.format(Locale.US, "%02d:00", lich.get(Calendar.HOUR_OF_DAY))
+                    val nhietDo = phanTu.getJSONObject("main").getDouble("temp").toInt()
+                    val moTa = phanTu.getJSONArray("weather").getJSONObject(0).getString("description")
+                    duBaoTheoGio.add("$chuoiThoiGian - ${nhietDo}°C ($moTa)")
+                    soLuongGio++
                 }
             }
 
-            // Xử lý dự báo 5 ngày tới (Đảm bảo lấy đủ 5 ngày khác nhau)
-            val calendarToday = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-            calendarToday.timeInMillis = (currentTime + timezoneOffset) * 1000
-            val todayDate = calendarToday.get(Calendar.DAY_OF_YEAR)
+            // Xử lý dự báo 5 ngày tới
+            val lichHomNay = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+            lichHomNay.timeInMillis = (thoiGianHienTai + lechMuiGio) * 1000
+            val ngayHomNay = lichHomNay.get(Calendar.DAY_OF_YEAR)
 
-            val addedDays = mutableSetOf<Int>()
+            val danhSachNgayDaThem = mutableSetOf<Int>()
             
-            // Bước 1: Thử lấy mốc 12h-15h cho mỗi ngày
-            for (i in 0 until forecastList.length()) {
-                val item = forecastList.getJSONObject(i)
-                val dt = item.getLong("dt")
-                val calendarItem = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                calendarItem.timeInMillis = (dt + timezoneOffset) * 1000
+            // Bước 1: Ưu tiên mốc trưa
+            for (i in 0 until danhSachDuBao.length()) {
+                val phanTu = danhSachDuBao.getJSONObject(i)
+                val thoiGian = phanTu.getLong("dt")
+                val lichPhanTu = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                lichPhanTu.timeInMillis = (thoiGian + lechMuiGio) * 1000
                 
-                val itemDay = calendarItem.get(Calendar.DAY_OF_YEAR)
-                val itemHour = calendarItem.get(Calendar.HOUR_OF_DAY)
+                val ngayPhanTu = lichPhanTu.get(Calendar.DAY_OF_YEAR)
+                val gioPhanTu = lichPhanTu.get(Calendar.HOUR_OF_DAY)
 
-                if (itemDay > todayDate && !addedDays.contains(itemDay) && itemHour >= 12 && itemHour <= 15) {
-                    val dateStr = "${calendarItem.get(Calendar.DAY_OF_MONTH)}/${calendarItem.get(Calendar.MONTH) + 1}"
-                    val temp = item.getJSONObject("main").getDouble("temp").toInt()
-                    val desc = item.getJSONArray("weather").getJSONObject(0).getString("description")
-                    duBaoTheoTuan.add("$dateStr - ${temp}°C ($desc)")
-                    addedDays.add(itemDay)
+                if (ngayPhanTu > ngayHomNay && !danhSachNgayDaThem.contains(ngayPhanTu) && gioPhanTu >= 12 && gioPhanTu <= 15) {
+                    val chuoiNgayThang = "${lichPhanTu.get(Calendar.DAY_OF_MONTH)}/${lichPhanTu.get(Calendar.MONTH) + 1}"
+                    val nhietDo = phanTu.getJSONObject("main").getDouble("temp").toInt()
+                    val moTa = phanTu.getJSONArray("weather").getJSONObject(0).getString("description")
+                    duBaoTheoTuan.add("$chuoiNgayThang - ${nhietDo}°C ($moTa)")
+                    danhSachNgayDaThem.add(ngayPhanTu)
                 }
             }
 
-            // Bước 2: Nếu chưa đủ 5 ngày (do mốc cuối API không rơi vào 12h-15h), lấy bất kỳ mốc nào của ngày còn thiếu
+            // Bước 2: Bổ sung ngày thiếu
             if (duBaoTheoTuan.size < 5) {
-                for (i in 0 until forecastList.length()) {
-                    val item = forecastList.getJSONObject(i)
-                    val dt = item.getLong("dt")
-                    val calendarItem = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                    calendarItem.timeInMillis = (dt + timezoneOffset) * 1000
-                    val itemDay = calendarItem.get(Calendar.DAY_OF_YEAR)
+                for (i in 0 until danhSachDuBao.length()) {
+                    val phanTu = danhSachDuBao.getJSONObject(i)
+                    val thoiGian = phanTu.getLong("dt")
+                    val lichPhanTu = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                    lichPhanTu.timeInMillis = (thoiGian + lechMuiGio) * 1000
+                    val ngayPhanTu = lichPhanTu.get(Calendar.DAY_OF_YEAR)
 
-                    if (itemDay > todayDate && !addedDays.contains(itemDay)) {
-                        val dateStr = "${calendarItem.get(Calendar.DAY_OF_MONTH)}/${calendarItem.get(Calendar.MONTH) + 1}"
-                        val temp = item.getJSONObject("main").getDouble("temp").toInt()
-                        val desc = item.getJSONArray("weather").getJSONObject(0).getString("description")
-                        duBaoTheoTuan.add("$dateStr - ${temp}°C ($desc)")
-                        addedDays.add(itemDay)
+                    if (ngayPhanTu > ngayHomNay && !danhSachNgayDaThem.contains(ngayPhanTu)) {
+                        val chuoiNgayThang = "${lichPhanTu.get(Calendar.DAY_OF_MONTH)}/${lichPhanTu.get(Calendar.MONTH) + 1}"
+                        val nhietDo = phanTu.getJSONObject("main").getDouble("temp").toInt()
+                        val moTa = phanTu.getJSONArray("weather").getJSONObject(0).getString("description")
+                        duBaoTheoTuan.add("$chuoiNgayThang - ${nhietDo}°C ($moTa)")
+                        danhSachNgayDaThem.add(ngayPhanTu)
                     }
                     if (duBaoTheoTuan.size >= 5) break
                 }
             }
 
-            // Sắp xếp lại danh sách theo thời gian nếu cần (ở đây list API đã sắp xếp sẵn rồi)
-
-            // Tính Max/Min từ dự báo 24h
-            var maxTemp = -999.0
-            var minTemp = 999.0
-            for (i in 0 until minOf(8, forecastList.length())) {
-                val temp = forecastList.getJSONObject(i).getJSONObject("main").getDouble("temp")
-                if (temp > maxTemp) maxTemp = temp
-                if (temp < minTemp) minTemp = temp
+            // Tính nhiệt độ cao nhất/thấp nhất trong 24h
+            var caoNhat = -999.0
+            var thapNhat = 999.0
+            for (i in 0 until minOf(8, danhSachDuBao.length())) {
+                val nhietDo = danhSachDuBao.getJSONObject(i).getJSONObject("main").getDouble("temp")
+                if (nhietDo > caoNhat) caoNhat = nhietDo
+                if (nhietDo < thapNhat) thapNhat = nhietDo
             }
 
             DuLieuThoiTiet(
                 tenThanhPho = tenThanhPho,
-                nhietDo = currentTemp,
-                trangThai = currentDesc,
+                nhietDo = nhietDoHienTai,
+                trangThai = moTaHienTai,
                 doAm = main.getInt("humidity"),
                 tocDoGio = wind.getDouble("speed") * 3.6,
                 apSuat = main.getInt("pressure"),
-                nhietDoCaoNhat = maxTemp.toInt(),
-                nhietDoThapNhat = minTemp.toInt(),
+                nhietDoCaoNhat = caoNhat.toInt(),
+                nhietDoThapNhat = thapNhat.toInt(),
                 duBaoTheoGio = duBaoTheoGio,
                 duBaoTheoTuan = duBaoTheoTuan
             )
         } catch (e: Exception) {
-            val message = if (e.message?.contains("404") == true) "Không tìm thấy" else ""
-            DuLieuThoiTiet(tenThanhPho, 0, message, 0, 0.0, 0, 0, 0, emptyList(), emptyList())
+            val thongBao = if (e.message?.contains("404") == true) "Không tìm thấy" else ""
+            DuLieuThoiTiet(tenThanhPho, 0, thongBao, 0, 0.0, 0, 0, 0, emptyList(), emptyList())
         }
     }
 
     /**
-     * Tìm kiếm danh sách các thành phố gợi ý dựa trên từ khóa nhập vào.
+     * Tìm kiếm gợi ý tên thành phố.
      */
     suspend fun timKiemThanhPho(tuKhoa: String): List<String> = withContext(Dispatchers.IO) {
         try {
-            val encodedQuery = URLEncoder.encode(tuKhoa, "UTF-8")
-            val url = "https://api.openweathermap.org/geo/1.0/direct?q=$encodedQuery&limit=5&appid=$apiKey"
-            val response = URL(url).readText()
-            val jsonArray = org.json.JSONArray(response)
+            val tuKhoaMaHoa = URLEncoder.encode(tuKhoa, "UTF-8")
+            val duongDan = "https://api.openweathermap.org/geo/1.0/direct?q=$tuKhoaMaHoa&limit=5&appid=$maApi"
+            val ketQua = URL(duongDan).readText()
+            val mangJson = org.json.JSONArray(ketQua)
             
             val danhSachGoiY = mutableListOf<String>()
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val name = obj.getString("name")
-                // Chỉ lấy tên thành phố theo yêu cầu của bạn
-                if (!danhSachGoiY.contains(name)) {
-                    danhSachGoiY.add(name)
+            for (i in 0 until mangJson.length()) {
+                val doiTuong = mangJson.getJSONObject(i)
+                val ten = doiTuong.getString("name")
+                if (!danhSachGoiY.contains(ten)) {
+                    danhSachGoiY.add(ten)
                 }
             }
             danhSachGoiY
