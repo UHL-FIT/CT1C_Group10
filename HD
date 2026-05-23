@@ -1,0 +1,54 @@
+1. KhoDuLieuThoiTiet (Data Layer - Model)
+Bạn hiểu đúng: Nó lưu và cung cấp dữ liệu cho các trang.
+Giải thích kỹ thuật: Đây là Data Source. Nó đóng vai trò là kho chứa dữ liệu tĩnh hoặc thực hiện các thuật toán xử lý dữ liệu thô 
+(như tinhToanThongKe) trước khi đưa ra ngoài. Nó không hề biết gì về giao diện (UI) hay người dùng, nó chỉ thuần túy làm việc với dữ liệu.
+
+2. TrangThaiUiThoiTiet (State Layer - State Model)
+Bạn hiểu đúng: Khai báo khởi tạo biến dùng cho tất cả các trang.
+Giải thích kỹ thuật: Đây là UI State (State Holder). Bạn định nghĩa nó dưới dạng data class để gói gọn tất cả các "biến số" mà giao diện cần
+(danh sách thành phố, đơn vị đo, trạng thái lỗi, trạng thái bảng cấu hình). Việc đưa tất cả vào một thực thể duy nhất giúp dữ liệu chảy một chiều (UDF)
+từ ViewModel xuống UI dễ dàng hơn, tránh việc mỗi màn hình tự quản lý biến riêng lẻ gây xung đột.
+
+3. MoHinhXemThoiTiet (ViewModel - Logic Layer)
+Bạn hiểu đúng: Lưu các hàm (phương thức) thêm, xóa, đổi đơn vị...
+Giải thích kỹ thuật: Đây là ViewModel. Nó là cầu nối trung tâm. Nó không chỉ lưu các hàm mà còn quản lý vòng đời của dữ liệu. Khi bạn xoay màn hình, các biến
+trong MainActivity có thể mất, nhưng dữ liệu trong ViewModel vẫn tồn tại nguyên vẹn. Nó nhận "Event" (từ UI) và biến đổi "State" (trạng thái) để UI tự cập nhật lại.
+
+4. MainActivity (View Layer - Controller)
+Bạn hiểu đúng: Dùng Navigation để chuyển trang và lưu vòng đời.
+Giải thích kỹ thuật: Đây là Entry Point (Điểm khởi đầu). Ngoài việc điều hướng (Navigation), nó là nơi "cắm" (collect) luồng dữ liệu từ ViewModel vào các hàm 
+Composable. Việc Override các hàm onStart, onResume... giúp bạn kiểm soát chính xác khi nào ứng dụng hiển thị và khi nào người dùng tương tác, đáp ứng đúng yêu cầu
+khắt khe của biểu điểm thầy Sơn.
+
+1. Vai trò của từng file UI
+Tất cả các file này đều là các hàm @Composable, nghĩa là chúng định nghĩa giao diện trông như thế nào dựa trên dữ liệu đầu
+vào.
+
+ManHinhTrangChu.kt: Đóng vai trò là Dashboard chính. Nó sử dụng LazyColumn để hiển thị danh sách các thành phố người dùng đã chọn. 
+Tại đây, nó lắng nghe các sự kiện như: bấm vào thành phố để xem chi tiết, bấm nút Sửa để hiện nút Xóa, hoặc bấm Cài đặt để mở bảng cấu hình. 
+
+ManHinhChiTietThanhPho.kt: Hiển thị sâu các thông số (độ ẩm, gió, mưa, tầm nhìn). Nó thực hiện logic quy đổi đơn vị (độ C sang độ F, km/h sang mph) 
+ngay tại UI dựa trên TrangThaiUiThoiTiet truyền vào. 
+
+ManHinhTimKiem.kt: Chứa OutlinedTextField để người dùng nhập liệu. Nó hiển thị kết quả gợi ý thông qua LazyColumn và cho phép người dùng "Xem trước" 
+thành phố trước khi quyết định "Thêm" vào trang chính.  
+
+ManHinhSuaCauHinh.kt: Đây là màn hình cấu hình hệ thống, cho phép chọn đơn vị đo (độ C/F, km/h/mph...) thông qua RadioButton.  
+
+ManHinhGioiThieuNhom.kt: Hiển thị thông tin tĩnh về đề tài và bảng phân chia thành viên, phục vụ mục đích báo cáo và vấn đáp.  
+
+2. Cách các file UI "giao tiếp" với dữ liệuTrong lập trình Jetpack Compose, các file UI này không tự thay đổi dữ liệu. 
+Chúng liên kết với ViewModel thông qua Callback (hàm ẩn danh):Nhận dữ liệu (State Down): Mọi file UI đều nhận biến trangThai: TrangThaiUiThoiTiet.
+Đây là nguồn dữ liệu duy nhất. Nếu biến này thay đổi, UI tự động vẽ lại.  
+
+Gửi sự kiện (Event Up): Các file UI không chứa logic xử lý (như xóa thành phố hay đổi đơn vị). 
+Thay vào đó, chúng gọi các hàm "callback" được truyền từ MainActivity vào.Ví dụ: Khi bấm nút "Xóa", 
+UI chỉ gọi onBamXoaThanhPho(thanhPho.tenThanhPho). UI không quan tâm hàm đó làm gì, nó chỉ biết thông báo rằng "Người dùng vừa muốn xóa thành phố này".  
+
+3. Sự liên kết trong dự án của bạnCác file UI này không đứng độc lập mà được "xâu chuỗi" bởi Navigation:NavHost (trong MainActivity) 
+đóng vai trò như một bộ điều phối giao thông.  Khi bạn gọi boDieuHuongPhanTrang.navigate("man_hinh_chi_tiet"), 
+hệ thống sẽ "thay thế" file UI cũ bằng ManHinhChiTietThanhPho.  Tại mỗi màn hình, UI sử dụng dữ liệu từ bienTrangThaiHienTai (được cập nhật từ ViewModel) 
+để hiển thị đúng thông tin của thành phố được chọn. 
+
+Tóm lại:Các file UI là phần trình diễn.TrangThaiUiThoiTiet là kịch bản.MoHinhXemThoiTiet (ViewModel) 
+là đạo diễn chỉ đạo diễn xuất.MainActivity là sân khấu điều phối các màn diễn.
