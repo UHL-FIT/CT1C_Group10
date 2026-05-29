@@ -85,9 +85,9 @@ class MoHinhXemThoiTiet(application: Application) : AndroidViewModel(application
         _trangThaiUi.update { it.copy(chuoiTimKiemHienTai = chuoiNhap, thanhPhoXemTruoc = null) }
         congViecTimKiem?.cancel()
         
-        if (chuoiNhap.length >= 2) {
+        if (chuoiNhap.isNotEmpty()) {
             congViecTimKiem = viewModelScope.launch {
-                delay(500)
+                delay(300)
                 _trangThaiUi.update { it.copy(dangTaiDuLieu = true) }
                 val goiY = khoDuLieu.timKiemThanhPho(chuoiNhap)
                 _trangThaiUi.update { 
