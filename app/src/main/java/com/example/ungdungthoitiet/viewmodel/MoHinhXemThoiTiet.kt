@@ -1,21 +1,25 @@
 package com.example.ungdungthoitiet.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ungdungthoitiet.data.DuLieuThoiTiet
 import com.example.ungdungthoitiet.data.KhoDuLieuThoiTiet
 import com.example.ungdungthoitiet.data.TrangThaiUiThoiTiet
+import com.example.ungdungthoitiet.data.local.QuanLyCaiDat
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class MoHinhXemThoiTiet : ViewModel() {
+class MoHinhXemThoiTiet(application: Application) : AndroidViewModel(application) {
 
     private val khoDuLieu = KhoDuLieuThoiTiet()
+    private val quanLyCaiDat = QuanLyCaiDat(application)
 
     private val _trangThaiUi = MutableStateFlow(TrangThaiUiThoiTiet())
     val uiState: StateFlow<TrangThaiUiThoiTiet> = _trangThaiUi.asStateFlow()
@@ -23,7 +27,25 @@ class MoHinhXemThoiTiet : ViewModel() {
     private var congViecTimKiem: Job? = null
 
     init {
-        taiDuLieuThoiTietMacDinh()
+        khoiTaoCaiDatVaDuLieu()
+    }
+
+    /**
+     * Khởi tạo cài đặt từ DataStore và tải dữ liệu mặc định.
+     */
+    private fun khoiTaoCaiDatVaDuLieu() {
+        viewModelScope.launch {
+            // Đọc cài đặt đã lưu
+            val donViNhietDoDaLuu = quanLyCaiDat.donViNhietDo.first()
+            val donViGioDaLuu = quanLyCaiDat.donViGio.first()
+
+            _trangThaiUi.update { 
+                it.copy(donViNhietDo = donViNhietDoDaLuu, donViGio = donViGioDaLuu) 
+            }
+
+            // Tải dữ liệu mặc định
+            taiDuLieuThoiTietMacDinh()
+        }
     }
 
     private fun taiDuLieuThoiTietMacDinh() {
@@ -41,9 +63,6 @@ class MoHinhXemThoiTiet : ViewModel() {
         }
     }
 
-    /**
-     * Lấy dữ liệu thời tiết chi tiết cho thành phố được chọn.
-     */
     fun taiDuLieuThanhPhoChiTiet(tenThanhPho: String) {
         viewModelScope.launch {
             try {
@@ -62,16 +81,13 @@ class MoHinhXemThoiTiet : ViewModel() {
         }
     }
 
-    /**
-     * Tìm kiếm gợi ý tên thành phố khi người dùng gõ.
-     */
     fun capNhatChuoiTimKiemVaLocGoiY(chuoiNhap: String) {
         _trangThaiUi.update { it.copy(chuoiTimKiemHienTai = chuoiNhap, thanhPhoXemTruoc = null) }
         congViecTimKiem?.cancel()
         
-        if (chuoiNhap.length >= 2) {
+        if (chuoiNhap.isNotEmpty()) {
             congViecTimKiem = viewModelScope.launch {
-                delay(500)
+                delay(300)
                 _trangThaiUi.update { it.copy(dangTaiDuLieu = true) }
                 val goiY = khoDuLieu.timKiemThanhPho(chuoiNhap)
                 _trangThaiUi.update { 
@@ -117,8 +133,22 @@ class MoHinhXemThoiTiet : ViewModel() {
     fun hienThiBangSuaCauHinh(hienThi: Boolean) = _trangThaiUi.update { it.copy(hienBangSuaCauHinh = hienThi) }
     fun kichHoatCheDoSuaDanhSach() = _trangThaiUi.update { it.copy(cheDoSuaDanhSach = true) }
     fun hoanThanhSuaDanhSach() = _trangThaiUi.update { it.copy(cheDoSuaDanhSach = false) }
-    fun thayDoiDonViNhietDo(donVi: String) = _trangThaiUi.update { it.copy(donViNhietDo = donVi) }
-    fun thayDoiDonViGio(donVi: String) = _trangThaiUi.update { it.copy(donViGio = donVi) }
+
+    // Các hàm đổi cài đặt có kèm theo lưu vào DataStore
+    fun thayDoiDonViNhietDo(donVi: String) {
+        viewModelScope.launch {
+            quanLyCaiDat.luuDonViNhietDo(donVi)
+            _trangThaiUi.update { it.copy(donViNhietDo = donVi) }
+        }
+    }
+
+    fun thayDoiDonViGio(donVi: String) {
+        viewModelScope.launch {
+            quanLyCaiDat.luuDonViGio(donVi)
+            _trangThaiUi.update { it.copy(donViGio = donVi) }
+        }
+    }
+
     fun thayDoiDonViLuongMua(donVi: String) = _trangThaiUi.update { it.copy(donViLuongMua = donVi) }
     fun thayDoiDonViKhoangCach(donVi: String) = _trangThaiUi.update { it.copy(donViKhoangCach = donVi) }
 
