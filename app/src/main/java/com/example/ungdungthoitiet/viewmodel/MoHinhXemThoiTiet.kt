@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.ungdungthoitiet.data.DuLieuThoiTiet
 import com.example.ungdungthoitiet.data.KhoDuLieuThoiTiet
 import com.example.ungdungthoitiet.data.TrangThaiUiThoiTiet
+import com.example.ungdungthoitiet.data.local.AppDatabase
 import com.example.ungdungthoitiet.data.local.QuanLyCaiDat
+import com.example.ungdungthoitiet.data.local.ThanhPhoEntity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,8 @@ class MoHinhXemThoiTiet(application: Application) : AndroidViewModel(application
 
     private val khoDuLieu = KhoDuLieuThoiTiet()
     private val quanLyCaiDat = QuanLyCaiDat(application)
+    private val database = AppDatabase.layDatabase(application)
+    private val thanhPhoDao = database.thanhPhoDao()
 
     private val _trangThaiUi = MutableStateFlow(TrangThaiUiThoiTiet())
     val uiState: StateFlow<TrangThaiUiThoiTiet> = _trangThaiUi.asStateFlow()
@@ -31,11 +35,11 @@ class MoHinhXemThoiTiet(application: Application) : AndroidViewModel(application
     }
 
     /**
-     * Khởi tạo cài đặt từ DataStore và tải dữ liệu mặc định.
+     * Khởi tạo cài đặt và danh sách thành phố yêu thích từ Room Database.
      */
     private fun khoiTaoCaiDatVaDuLieu() {
         viewModelScope.launch {
-            // Đọc cài đặt đã lưu
+            // 1. Đọc đơn vị đo lường từ DataStore
             val donViNhietDoDaLuu = quanLyCaiDat.donViNhietDo.first()
             val donViGioDaLuu = quanLyCaiDat.donViGio.first()
 
@@ -43,16 +47,34 @@ class MoHinhXemThoiTiet(application: Application) : AndroidViewModel(application
                 it.copy(donViNhietDo = donViNhietDoDaLuu, donViGio = donViGioDaLuu) 
             }
 
-            // Tải dữ liệu mặc định
-            taiDuLieuThoiTietMacDinh()
+            // 2. Đọc danh sách thành phố từ Room
+            val danhSachLuuTrongRoom = thanhPhoDao.layTatCa()
+            
+            if (danhSachLuuTrongRoom.isEmpty()) {
+                // Nếu lần đầu mở app, dùng mặc định
+                taiDuLieuThoiTietMacDinh()
+            } else {
+                val danhSachTen = danhSachLuuTrongRoom.map { it.tenThanhPho }
+                taiDuLieuTheoDanhSach(danhSachTen)
+            }
         }
     }
 
     private fun taiDuLieuThoiTietMacDinh() {
+        val macDinh = listOf("Hà Nội", "Hải Phòng", "Đà Nẵng")
+        viewModelScope.launch {
+            // Lưu các thành phố mặc định vào Room để chúng không bị mất khi khởi động lại
+            macDinh.forEach { ten ->
+                thanhPhoDao.themThanhPho(ThanhPhoEntity(ten))
+            }
+            taiDuLieuTheoDanhSach(macDinh)
+        }
+    }
+
+    private fun taiDuLieuTheoDanhSach(danhSachTen: List<String>) {
         viewModelScope.launch {
             try {
                 _trangThaiUi.update { it.copy(dangTaiDuLieu = true) }
-                val danhSachTen = listOf("Hà Nội", "Hải Phòng", "Đà Nẵng")
                 val danhSachMoi = danhSachTen.map { khoDuLieu.layThoiTiet(it) }
                 _trangThaiUi.update {
                     it.copy(danhSachThanhPho = danhSachMoi, dangTaiDuLieu = false)
@@ -99,30 +121,47 @@ class MoHinhXemThoiTiet(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Thêm thành phố vào danh sách và lưu vào Room Database.
+     */
     fun themThanhPhoVaoTrangChu(thanhPho: DuLieuThoiTiet) {
-        val daTonTai = _trangThaiUi.value.danhSachThanhPho.any {
-            it.tenThanhPho.trim().equals(thanhPho.tenThanhPho.trim(), ignoreCase = true)
-        }
-
-        if (!daTonTai) {
-            _trangThaiUi.update { trang ->
-                trang.copy(
-                    danhSachThanhPho = trang.danhSachThanhPho + thanhPho,
-                    thanhPhoXemTruoc = null,
-                    chuoiTimKiemHienTai = "",
-                    danhSachGoiYTimKiem = emptyList()
-                )
+        viewModelScope.launch {
+            val danhSachHienTai = _trangThaiUi.value.danhSachThanhPho
+            val daTonTai = danhSachHienTai.any {
+                it.tenThanhPho.trim().equals(thanhPho.tenThanhPho.trim(), ignoreCase = true)
             }
-        } else {
-            _trangThaiUi.update { 
-                it.copy(thanhPhoXemTruoc = null, chuoiTimKiemHienTai = "", thongBaoLoiNhapLieu = "Đã có trong danh sách") 
+
+            if (!daTonTai) {
+                // Lưu vào Room
+                thanhPhoDao.themThanhPho(ThanhPhoEntity(thanhPho.tenThanhPho))
+                
+                _trangThaiUi.update { trang ->
+                    trang.copy(
+                        danhSachThanhPho = trang.danhSachThanhPho + thanhPho,
+                        thanhPhoXemTruoc = null,
+                        chuoiTimKiemHienTai = "",
+                        danhSachGoiYTimKiem = emptyList()
+                    )
+                }
+            } else {
+                _trangThaiUi.update { 
+                    it.copy(thanhPhoXemTruoc = null, chuoiTimKiemHienTai = "", thongBaoLoiNhapLieu = "Đã có trong danh sách") 
+                }
             }
         }
     }
 
+    /**
+     * Xóa thành phố và cập nhật Room Database.
+     */
     fun xoaThanhPhoKhoiTrangChu(tenThanhPho: String) {
-        _trangThaiUi.update { trang ->
-            trang.copy(danhSachThanhPho = trang.danhSachThanhPho.filterNot { it.tenThanhPho == tenThanhPho })
+        viewModelScope.launch {
+            // Xóa khỏi Room
+            thanhPhoDao.xoaThanhPho(tenThanhPho)
+            
+            _trangThaiUi.update { trang ->
+                trang.copy(danhSachThanhPho = trang.danhSachThanhPho.filterNot { it.tenThanhPho == tenThanhPho })
+            }
         }
     }
 
@@ -134,7 +173,6 @@ class MoHinhXemThoiTiet(application: Application) : AndroidViewModel(application
     fun kichHoatCheDoSuaDanhSach() = _trangThaiUi.update { it.copy(cheDoSuaDanhSach = true) }
     fun hoanThanhSuaDanhSach() = _trangThaiUi.update { it.copy(cheDoSuaDanhSach = false) }
 
-    // Các hàm đổi cài đặt có kèm theo lưu vào DataStore
     fun thayDoiDonViNhietDo(donVi: String) {
         viewModelScope.launch {
             quanLyCaiDat.luuDonViNhietDo(donVi)
