@@ -1,5 +1,5 @@
 # WeatherNow - Ứng dụng Thời tiết thông minh
-Ứng dụng di động Android cung cấp thông tin thời tiết thời gian thực, dự báo theo giờ và theo ngày bằng cách khai thác dữ liệu từ OpenWeather API. Ứng dụng được xây dựng trên nền tảng Jetpack Compose, tuân thủ kiến trúc MVVM và đáp ứng các tiêu chí trong Biểu điểm chấm BTL LTTTBDD_v1.0.xlsx - Template.pdf.
+Ứng dụng di động Android cung cấp thông tin thời tiết thời gian thực, dự báo theo giờ và theo ngày bằng cách khai thác dữ liệu từ OpenWeather API. Ứng dụng được xây dựng trên nền tảng Jetpack Compose, tuân thủ kiến trúc MVVM.
 ---
 ## 1. Thông tin nhóm và thành viên
 - Lớp: K9. CT1C - Nhóm 10
