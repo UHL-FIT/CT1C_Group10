@@ -4,7 +4,7 @@
 ## 1. Thông tin nhóm và thành viên
 - Lớp: K9. CT1C - Nhóm 10
 - Trường: Đại học Hạ Long
-- Danh sách thành viên và phân chia công việc:
+- Danh sách thành viên:
   + SV1 (Leader): Bùi Khánh Minh - MSV: 23DH201130
   + SV2: Nguyễn Xuân Tùng - MSV: 23DH201142 
   + SV3: Nguyễn Mạnh Hải - MSV: 23DH201118 
