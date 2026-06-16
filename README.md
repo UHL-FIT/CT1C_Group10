@@ -28,7 +28,7 @@
   + Sử dụng LazyColumn để hiển thị danh sách cuộn mượt mà các thành phố đang theo dõi.
 
 - Tính năng Nâng cao:
-  + Kết nối trực tiếp với API thực, có cơ chế hiển thị trạng thái Loading/Error rõ ràng khi tải dữ liệu.
+  + Kết nối trực tiếp với API thực.
   + Chế độ hoạt động ngoại tuyến (Offline Mode) bằng cách lưu dữ liệu vào Room, cho phép ứng dụng chạy được cả khi không có mạng.
   + Bảng tùy chỉnh cài đặt bằng DataStore để lưu và thay đổi các đơn vị đo (nhiệt độ, tốc độ gió, lượng mưa, khoảng cách) trên toàn ứng dụng.
 ---
