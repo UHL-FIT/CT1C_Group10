@@ -5,10 +5,10 @@
 - Lớp: K9. CT1C - Nhóm 10
 - Trường: Đại học Hạ Long
 - Danh sách thành viên và phân chia công việc:
-  + SV1 (Leader): Bùi Khánh Minh - MSV: 23DH201130 (Phụ trách: Kiến trúc MVVM, Retrofit, Room Database)
-  + SV2: Nguyễn Xuân Tùng - MSV: 23DH201142 (Phụ trách: Jetpack Compose UI, LazyColumn, Material Theme)
-  + SV3: Nguyễn Mạnh Hải - MSV: 23DH201118 (Phụ trách: DataStore, Navigation, Activity Lifecycle)
-  + SV4: Trần Xuân Việt - MSV: 23DH201144 (Phụ trách: Viết báo cáo, làm tài liệu HDSD, xuất file APK)
+  + SV1 (Leader): Bùi Khánh Minh - MSV: 23DH201130
+  + SV2: Nguyễn Xuân Tùng - MSV: 23DH201142 
+  + SV3: Nguyễn Mạnh Hải - MSV: 23DH201118 
+  + SV4: Trần Xuân Việt - MSV: 23DH201144
 ---
 ## 2. Đường dẫn tệp nộp kèm
 - File APK chạy được: Tải trực tiếp tại mục Releases của kho lưu trữ GitHub này (Bản Latest Release)
