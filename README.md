@@ -12,8 +12,6 @@
 ---
 ## 2. Đường dẫn tệp nộp kèm
 - File APK chạy được: Tải trực tiếp tại mục Releases của kho lưu trữ GitHub này (Bản Latest Release)
-- Tài liệu Hướng dẫn sử dụng: Nằm trong thư mục /HD
-- Báo cáo Bài tập lớn: Nằm trong thư mục /Báo Cáo
 ---
 ## 3. Công nghệ và Kiến trúc áp dụng
 - UI Layer: Xây dựng bằng Composable function, áp dụng Material 3 Theme thống nhất về màu sắc, font chữ và hình khối. Sử dụng thư viện Coil để tải ảnh trạng thái thời tiết từ URL.
